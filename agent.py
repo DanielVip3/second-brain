@@ -1,5 +1,4 @@
 import os
-import random
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import create_agent
@@ -41,51 +40,53 @@ agent = create_agent(
   system_prompt=anime_system_prompt
 )
 
-if __name__ == "__main__":
-  print("\nAgent initialized! Type \"exit\" to quit.\n")
+async def ask_agent(user_prompt: str, thread_id: str):
+  agent_wiped_memory = False
 
-  thread_id = str(random.random())
+  try:
+    events = agent.astream_events({
+      "messages": [{
+        "role": "user",
+        "content": user_prompt
+      }]
+    },
+    config = {
+      "configurable": {
+        "thread_id": thread_id
+      }
+    },
+    version="v2")
 
-  while True:
-    user_question = input("Ask about your anime list: ")
-    
-    if user_question.lower() == "exit":
-      break
+    async for event in events:
+      kind = event["event"]
+
+      if kind == "on_chat_model_stream":
+        chunk = event["data"]["chunk"]
+        text = ""
+
+        if chunk.content and isinstance(chunk.content, str):
+          text = chunk.content
+        elif chunk.content and isinstance(chunk.content, list):
+          for block in chunk.content:
+            if isinstance(block, dict) and "text" in block and block["text"]:
+              text = block["text"]
+            elif isinstance(block, str) and block:
+              text = block
         
-    try:
-      response = agent.invoke({
-        "messages": [{
-          "role": "user",
-          "content": user_question
-        }]
-      },
-      config = {
-        "configurable": {
-          "thread_id": thread_id
-        }
-      })
+        if text:
+          yield {"type": "token", "content": text}
+        
+      elif kind == "on_tool_start":
+        tool_name = event["name"]
 
-      raw_content = response["messages"][-1].content
-      if isinstance(raw_content, list):
-        final_message = raw_content[0].get("text", "")
-      else:
-        final_message = raw_content
-
-      print("\n🤖 Agent:", final_message, "\n")
-      print("-" * 50)
-
-      # --- Check for memory wipe
-      agent_wiped_memory = False
-      
-      # Check if the AI decided to call its wipe_memory tool during this turn
-      for msg in response["messages"]: 
-        if getattr(msg, "type", "") == "tool" and getattr(msg, "name", "") == "wipe_memory":
+        # --- Check for memory wipe
+        if tool_name == "wipe_memory":
           agent_wiped_memory = True
-          break
-      
-      if agent_wiped_memory:
-        print("[System: The agent decided the task is complete and wiped its memory.]")
-        thread_id = str(random.random())
+        
+        yield {"type": "tool_status", "content": f"\n\n⚙️ [Running tool: {tool_name}...]\n\n"}
 
-    except Exception as e:
-      print(f"An error occurred: {e}")
+    if agent_wiped_memory:
+      yield {"type": "memory_wiped", "content": True}
+
+  except Exception as e:
+    yield {"type": "error", "content": str(e)}

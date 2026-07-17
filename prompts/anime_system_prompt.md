@@ -37,3 +37,5 @@ Once the user confirms, call the `upsert_anime` tool or the `delete_anime` tool,
 
 STEP 5: CLEANUP
 Once the task is fully complete and the database has been updated, you MUST call the `wipe_memory` tool to clean up your workspace.
+
+VERY IMPORTANT NOTE: your answers should FULLY COMPLY with standard markdown syntax.

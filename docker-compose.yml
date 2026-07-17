@@ -45,6 +45,23 @@ services:
     depends_on:
       - nocodb
 
+  telegram-bot:
+    build: .
+    container_name: telegram-bot
+    restart: always
+    depends_on:
+      - db
+      - nocodb
+    volumes:
+      - .:/app
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_ADMIN_USER_ID=${TELEGRAM_ADMIN_USER_ID}
+      - NOCODB_ANIME_API_URL=${NOCODB_ANIME_API_URL}
+      - NOCODB_AI_AGENT_TOKEN=${NOCODB_AI_AGENT_TOKEN}
+
 volumes:
   db_data:
   nocodb_data:
