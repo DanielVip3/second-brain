@@ -1,0 +1,3 @@
+2brain.danieledemartino.dev {
+  reverse_proxy nocodb:8080
+}

@@ -20,7 +20,7 @@ services:
     container_name: nocodb-app
     restart: always
     ports:
-      - "8081:8080"
+      - "127.0.0.1:8081:8080"
     environment:
       NC_DB: "pg://db:5432?u=${POSTGRES_USER}&p=${POSTGRES_PASSWORD}&d=${POSTGRES_DB}"
     depends_on:
@@ -28,7 +28,23 @@ services:
         condition: service_healthy
     volumes:
       - nocodb_data:/usr/app/data/
+  
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - nocodb
 
 volumes:
   db_data:
   nocodb_data:
+  caddy_data:
+  caddy_config:
