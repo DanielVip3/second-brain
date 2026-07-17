@@ -1,3 +1,3 @@
-2brain.danieledemartino.dev {
+{$DOMAIN:http://localhost} {
   reverse_proxy nocodb:8080
 }
